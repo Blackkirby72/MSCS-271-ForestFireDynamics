@@ -1,72 +1,130 @@
-globals [ plantColor ]
+globals [ plantColor fireColor ]
 
-patches-own [state deathTime]
+patches-own [plantState plantDeathTime fireState fireDeathTime ]
 
 to setup
   clear-all
-  ;;random-seed 1
 
   set plantColor [ 38 68 66 64 62  ]
+  set fireColor [ 0 26 16 7 ]
 
   ask patches [
     ;;let randomNumber random 2
     ;;set randomColor item randomNumber plantColor
     ifelse random 100 < 1 [
-      set state 1
+      set plantState 1
       set pcolor item 1 plantColor
-      set deathTime random 20
+      set plantDeathTime random 20
     ][
-      set state 0
+      set plantState 0
       set pcolor item 0 plantColor
     ]
+
+    set fireState 0
+  ]
+
+  ask patches with [ pxcor = max-pxcor or pxcor = min-pxcor or pycor = max-pycor or pycor = min-pycor ] [
+    set plantState -1
+    set fireState -1
+    set pcolor black
   ]
 
   reset-ticks
 end
 
 to go
+  transition-plants
+  transition-fire
+  tick
+end
+
+to transition-plants
   ask patches [
-   (ifelse
-    state = 0 [
-        let adults count neighbors4 with [state = 4]
-        if adults > 0 [
-         set state 1
-         set pcolor item 1 plantColor
-         set deathTime random 20
+    if plantState != -1 [
+      (ifelse
+        plantState = 0 [
+          let adults count neighbors4 with [plantState = 4]
+          if adults > 0 [
+            set plantState 1
+            set pcolor item 1 plantColor
+            set plantDeathTime random 20
+          ]
         ]
-    ]
-    state = 1 [
-     set state 2
-     set pcolor item 2 plantColor
-    ]
-    state = 2 [
-      let numState4 0
-        let adults count neighbors4 with [state = 4]
-        ifelse adults = 4 [
-         set state 0
-         set pcolor item 0 plantColor
-          set deathTime 0
-        ] [
-         set state 3
-         set pcolor item 3 plantColor
+        plantState = 1 [
+          set plantState 2
+          set pcolor item 2 plantColor
         ]
-    ]
-    state = 3 [
-     set state 4
-     set pcolor item 4 plantColor
-    ]
-    state = 4 [
+        plantState = 2 [
+          let numplantState4 0
+          let adults count neighbors4 with [plantState = 4]
+          ifelse adults = 4 [
+            set plantState 0
+            set pcolor item 0 plantColor
+            set plantDeathTime 0
+          ] [
+            set plantState 3
+            set pcolor item 3 plantColor
+          ]
+        ]
+        plantState = 3 [
+          set plantState 4
+          set pcolor item 4 plantColor
+        ]
+        plantState = 4 [
 
-    ])
+      ])
 
-    set deathTime deathTime - 1
+      set plantDeathTime plantDeathTime - 1
 
-    if deathTime = 0 [
-      set state 0
-      set pcolor item 0 plantColor
+      if plantDeathTime <= 0 [
+        set plantState 0
+        set pcolor item 0 plantColor
+      ]
     ]
   ]
-  tick
+end
+
+to transition-fire
+  ask patches [
+    let flammable plantState != 0 and plantState != 1
+    (ifelse fireState = 0 and flammable [
+      let neighborsExcitedByFire count neighbors4 with [fireState = 1]
+      if neighborsExcitedByFire > 0 [
+        set plantState -1
+        set fireState 1
+        set pcolor item 1 fireColor
+      ]
+    ]
+    fireState = 1 [
+      set fireState 2
+      set pcolor item 2 fireColor
+      set fireDeathTime random 10
+    ]
+    fireState = 2 [
+       if fireDeathTime <= 0 [
+         set fireState 3
+         set pcolor item 3 fireColor
+       ]
+    ]
+    fireState = 3 [
+      set fireState 0
+      set pcolor item 0 plantColor
+      set plantState 0
+    ])
+
+    if fireState != 0 and fireState != 3 [
+      set fireDeathTime fireDeathTime - 1
+    ]
+  ]
+end
+
+to startFire
+  ask one-of patches with [plantState = 2 or plantState = 3 or plantState = 4] [
+    set plantState -1
+    set fireState 1
+    set pcolor item 1 fireColor
+    set fireDeathTime random 10
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -90,8 +148,8 @@ GRAPHICS-WINDOW
 16
 -16
 16
-1
-1
+0
+0
 1
 ticks
 30.0
@@ -121,6 +179,23 @@ BUTTON
 Start
 go
 T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+81
+311
+164
+344
+Start Fire
+startFire
+NIL
 1
 T
 OBSERVER
