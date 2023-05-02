@@ -44,19 +44,19 @@ to transition-plants
     if plantGrowthState = -1 [ stop ]
 
     (ifelse
-      plantGrowthState = 0 [
+      plantGrowthState = 0 and random 100 < plantGrowthState0To1 [
         let adults count neighbors4 with [plantGrowthState = 4]
         if adults > 0 [
           set plantGrowthState 1
           set pcolor item 1 plantColors
-          set plantDeathTimer random 20
+          set plantDeathTimer random (maxPlantLife - minPlantLife) + minPlantLife
         ]
       ]
-      plantGrowthState = 1 [
+      plantGrowthState = 1 and random 100 < plantGrowthState1To2 [
         set plantGrowthState 2
         set pcolor item 2 plantColors
       ]
-      plantGrowthState = 2 [
+      plantGrowthState = 2 and random 100 < plantGrowthState2To3 [
         let adults count neighbors4 with [plantGrowthState = 4]
         ifelse adults = 4 [
           set plantGrowthState 0
@@ -67,7 +67,7 @@ to transition-plants
           set pcolor item 3 plantColors
         ]
       ]
-      plantGrowthState = 3 [
+      plantGrowthState = 3 and random 100 < plantGrowthState3To4 [
         set plantGrowthState 4
         set pcolor item 4 plantColors
       ]
@@ -215,10 +215,85 @@ plantGrowthState0To1
 plantGrowthState0To1
 0
 100
-30.0
+50.0
 1
 1
 %
+HORIZONTAL
+
+SLIDER
+67
+165
+302
+199
+plantGrowthState1To2
+plantGrowthState1To2
+0
+100
+40.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+67
+210
+302
+244
+plantGrowthState2To3
+plantGrowthState2To3
+0
+100
+50.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+68
+254
+303
+288
+plantGrowthState3To4
+plantGrowthState3To4
+0
+100
+50.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+69
+348
+304
+382
+maxPlantLife
+maxPlantLife
+20
+200
+130.0
+5
+1
+ticks
+HORIZONTAL
+
+SLIDER
+69
+300
+302
+334
+minPlantLife
+minPlantLife
+0
+20
+20.0
+1
+1
+ticks
 HORIZONTAL
 
 @#$#@#$#@
