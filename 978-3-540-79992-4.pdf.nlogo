@@ -1,30 +1,30 @@
-globals [ plantColor fireColor ]
+globals [ plantColors fireColors ]
 
-patches-own [plantState plantDeathTime fireState fireDeathTime ]
+patches-own [plantGrowthState plantDeathTimer fireState fireDeathTime ]
 
 to setup
   clear-all
 
-  set plantColor [ 38 68 66 64 62  ]
-  set fireColor [ 0 26 16 7 ]
+  set plantColors [ 38 68 66 64 62  ]
+
+  set fireColors [ 0 26 16 7 ]
 
   ask patches [
-    ;;let randomNumber random 2
-    ;;set randomColor item randomNumber plantColor
-    ifelse random 100 < 1 [
-      set plantState 1
-      set pcolor item 1 plantColor
-      set plantDeathTime random 20
+    ifelse random 200 < 1 [
+      set plantGrowthState 1
+      set pcolor item 1 plantColors
+      set plantDeathTimer random 20
     ][
-      set plantState 0
-      set pcolor item 0 plantColor
+      set plantGrowthState 0
+      set pcolor item 0 plantColors
     ]
 
     set fireState 0
   ]
 
+  ;; Add a border to prevent trees/fires spreading across edges
   ask patches with [ pxcor = max-pxcor or pxcor = min-pxcor or pycor = max-pycor or pycor = min-pycor ] [
-    set plantState -1
+    set plantGrowthState -1
     set fireState -1
     set pcolor black
   ]
@@ -40,76 +40,77 @@ end
 
 to transition-plants
   ask patches [
-    if plantState != -1 [
-      (ifelse
-        plantState = 0 [
-          let adults count neighbors4 with [plantState = 4]
-          if adults > 0 [
-            set plantState 1
-            set pcolor item 1 plantColor
-            set plantDeathTime random 20
-          ]
-        ]
-        plantState = 1 [
-          set plantState 2
-          set pcolor item 2 plantColor
-        ]
-        plantState = 2 [
-          let numplantState4 0
-          let adults count neighbors4 with [plantState = 4]
-          ifelse adults = 4 [
-            set plantState 0
-            set pcolor item 0 plantColor
-            set plantDeathTime 0
-          ] [
-            set plantState 3
-            set pcolor item 3 plantColor
-          ]
-        ]
-        plantState = 3 [
-          set plantState 4
-          set pcolor item 4 plantColor
-        ]
-        plantState = 4 [
+    ;; plant cannot grow on this patch
+    if plantGrowthState = -1 [ stop ]
 
-      ])
-
-      set plantDeathTime plantDeathTime - 1
-
-      if plantDeathTime <= 0 [
-        set plantState 0
-        set pcolor item 0 plantColor
+    (ifelse
+      plantGrowthState = 0 [
+        let adults count neighbors4 with [plantGrowthState = 4]
+        if adults > 0 [
+          set plantGrowthState 1
+          set pcolor item 1 plantColors
+          set plantDeathTimer random 20
+        ]
       ]
+      plantGrowthState = 1 [
+        set plantGrowthState 2
+        set pcolor item 2 plantColors
+      ]
+      plantGrowthState = 2 [
+        let adults count neighbors4 with [plantGrowthState = 4]
+        ifelse adults = 4 [
+          set plantGrowthState 0
+          set pcolor item 0 plantColors
+          set plantDeathTimer 0
+        ] [
+          set plantGrowthState 3
+          set pcolor item 3 plantColors
+        ]
+      ]
+      plantGrowthState = 3 [
+        set plantGrowthState 4
+        set pcolor item 4 plantColors
+      ]
+      plantGrowthState = 4 [
+
+    ])
+
+    set plantDeathTimer plantDeathTimer - 1
+
+    if plantDeathTimer <= 0 [
+      set plantGrowthState 0
+      set pcolor item 0 plantColors
     ]
   ]
 end
 
 to transition-fire
   ask patches [
-    let flammable plantState != 0 and plantState != 1
+    let flammable plantGrowthState != 0 and plantGrowthState != 1
+
     (ifelse fireState = 0 and flammable [
       let neighborsExcitedByFire count neighbors4 with [fireState = 1]
       if neighborsExcitedByFire > 0 [
-        set plantState -1
+        set plantGrowthState -1
         set fireState 1
-        set pcolor item 1 fireColor
+        set pcolor item 1 fireColors
       ]
     ]
     fireState = 1 [
       set fireState 2
-      set pcolor item 2 fireColor
+      set pcolor item 2 fireColors
       set fireDeathTime random 10
     ]
     fireState = 2 [
        if fireDeathTime <= 0 [
          set fireState 3
-         set pcolor item 3 fireColor
+         set pcolor item 3 fireColors
        ]
     ]
     fireState = 3 [
       set fireState 0
-      set pcolor item 0 plantColor
-      set plantState 0
+      set pcolor item 0 plantColors
+      set plantGrowthState 0
     ])
 
     if fireState != 0 and fireState != 3 [
@@ -119,19 +120,19 @@ to transition-fire
 end
 
 to startFire
-  ask one-of patches with [plantState = 2 or plantState = 3 or plantState = 4] [
-    set plantState -1
+  ask one-of patches with [plantGrowthState = 2 or plantGrowthState = 3 or plantGrowthState = 4] [
+    set plantGrowthState -1
     set fireState 1
-    set pcolor item 1 fireColor
+    set pcolor item 1 fireColors
     set fireDeathTime random 10
   ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
-10
-647
-448
+354
+13
+2039
+1699
 -1
 -1
 13.0
@@ -144,10 +145,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--16
-16
--16
-16
+-64
+64
+-64
+64
 0
 0
 1
@@ -155,11 +156,11 @@ ticks
 30.0
 
 BUTTON
-67
-66
-130
-99
-test
+80
+23
+175
+56
+Setup
 setup
 NIL
 1
@@ -172,10 +173,10 @@ NIL
 1
 
 BUTTON
-105
-198
-168
-231
+180
+24
+275
+57
 Start
 go
 T
@@ -189,10 +190,10 @@ NIL
 1
 
 BUTTON
-81
-311
-164
-344
+80
+73
+274
+107
 Start Fire
 startFire
 NIL
@@ -204,6 +205,21 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+67
+122
+304
+156
+plantGrowthState0To1
+plantGrowthState0To1
+0
+100
+30.0
+1
+1
+%
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
