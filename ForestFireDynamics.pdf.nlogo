@@ -1,12 +1,138 @@
+globals [ plantColors fireColors ]
+
+patches-own [plantGrowthState plantDeathTimer fireState fireDeathTime ]
+
 to setup
   clear-all
+
+  set plantColors [ 38 68 66 64 62  ]
+
+  set fireColors [ 0 26 16 7 ]
+
+  ask patches [
+    ifelse random 200 < 1 [
+      set plantGrowthState 1
+      set pcolor item 1 plantColors
+      set plantDeathTimer random 20
+    ][
+      set plantGrowthState 0
+      set pcolor item 0 plantColors
+    ]
+
+    set fireState 0
+  ]
+
+  ;; Add a border to prevent trees/fires spreading across edges
+  ask patches with [ pxcor = max-pxcor or pxcor = min-pxcor or pycor = max-pycor or pycor = min-pycor ] [
+    set plantGrowthState -1
+    set fireState -1
+    set pcolor black
+  ]
+
+  reset-ticks
+end
+
+to go
+  transition-plants
+  transition-fire
+  tick
+end
+
+to transition-plants
+  ask patches [
+    ;; plant cannot grow on this patch
+    if plantGrowthState = -1 [ stop ]
+
+    (ifelse
+      plantGrowthState = 0 and random 100 < plantGrowthState0To1 [
+        let adults count neighbors4 with [plantGrowthState = 4]
+        if adults > 0 [
+          set plantGrowthState 1
+          set pcolor item 1 plantColors
+          set plantDeathTimer random (maxPlantLife - minPlantLife) + minPlantLife
+        ]
+      ]
+      plantGrowthState = 1 and random 100 < plantGrowthState1To2 [
+        set plantGrowthState 2
+        set pcolor item 2 plantColors
+      ]
+      plantGrowthState = 2 and random 100 < plantGrowthState2To3 [
+        let adults count neighbors4 with [plantGrowthState = 4]
+        ifelse adults = 4 [
+          set plantGrowthState 0
+          set pcolor item 0 plantColors
+          set plantDeathTimer 0
+        ] [
+          set plantGrowthState 3
+          set pcolor item 3 plantColors
+        ]
+      ]
+      plantGrowthState = 3 and random 100 < plantGrowthState3To4 [
+        set plantGrowthState 4
+        set pcolor item 4 plantColors
+      ]
+      plantGrowthState = 4 [
+
+    ])
+
+    set plantDeathTimer plantDeathTimer - 1
+
+    if plantDeathTimer <= 0 [
+      set plantGrowthState 0
+      set pcolor item 0 plantColors
+    ]
+  ]
+end
+
+to transition-fire
+  ask patches [
+    let flammable plantGrowthState != 0 and plantGrowthState != 1
+
+    (ifelse fireState = 0 and flammable [
+      let neighborsExcitedByFire count neighbors4 with [fireState = 1]
+      if neighborsExcitedByFire > 0 [
+        set plantGrowthState -1
+        set fireState 1
+        set pcolor item 1 fireColors
+      ]
+    ]
+    fireState = 1 [
+      set fireState 2
+      set pcolor item 2 fireColors
+      set fireDeathTime random 10
+    ]
+    fireState = 2 [
+       if fireDeathTime <= 0 [
+         set fireState 3
+         set pcolor item 3 fireColors
+       ]
+    ]
+    fireState = 3 [
+      set fireState 0
+      set pcolor item 0 plantColors
+      set plantGrowthState 0
+    ])
+
+    if fireState != 0 and fireState != 3 [
+      set fireDeathTime fireDeathTime - 1
+    ]
+  ]
+end
+
+to startFire
+  ask one-of patches with [plantGrowthState = 2 or plantGrowthState = 3 or plantGrowthState = 4] [
+    set plantGrowthState -1
+    set fireState 1
+    set pcolor item 1 fireColors
+    set fireDeathTime random 10
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
-10
-647
-448
+354
+13
+2039
+1699
 -1
 -1
 13.0
@@ -19,10 +145,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--16
-16
--16
-16
+-64
+64
+-64
+64
 0
 0
 1
@@ -30,11 +156,11 @@ ticks
 30.0
 
 BUTTON
-67
-66
-130
-99
-test
+80
+23
+175
+56
+Setup
 setup
 NIL
 1
@@ -45,6 +171,130 @@ NIL
 NIL
 NIL
 1
+
+BUTTON
+180
+24
+275
+57
+Start
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+80
+73
+274
+107
+Start Fire
+startFire
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+67
+122
+304
+155
+plantGrowthState0To1
+plantGrowthState0To1
+0
+100
+50.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+67
+165
+302
+198
+plantGrowthState1To2
+plantGrowthState1To2
+0
+100
+40.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+67
+210
+302
+243
+plantGrowthState2To3
+plantGrowthState2To3
+0
+100
+50.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+68
+254
+303
+287
+plantGrowthState3To4
+plantGrowthState3To4
+0
+100
+50.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+69
+348
+304
+381
+maxPlantLife
+maxPlantLife
+20
+200
+130.0
+5
+1
+ticks
+HORIZONTAL
+
+SLIDER
+69
+300
+302
+333
+minPlantLife
+minPlantLife
+0
+20
+20.0
+1
+1
+ticks
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?

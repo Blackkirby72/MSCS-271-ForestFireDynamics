@@ -1,5 +1,6 @@
 globals [ plantColors fireColors ]
 
+
 patches-own [plantGrowthState plantDeathTimer fireState fireDeathTime ]
 
 to setup
@@ -210,7 +211,7 @@ SLIDER
 67
 122
 304
-156
+155
 plantGrowthState0To1
 plantGrowthState0To1
 0
@@ -225,7 +226,7 @@ SLIDER
 67
 165
 302
-199
+198
 plantGrowthState1To2
 plantGrowthState1To2
 0
@@ -240,7 +241,7 @@ SLIDER
 67
 210
 302
-244
+243
 plantGrowthState2To3
 plantGrowthState2To3
 0
@@ -255,7 +256,7 @@ SLIDER
 68
 254
 303
-288
+287
 plantGrowthState3To4
 plantGrowthState3To4
 0
@@ -270,7 +271,7 @@ SLIDER
 69
 348
 304
-382
+381
 maxPlantLife
 maxPlantLife
 20
@@ -285,7 +286,7 @@ SLIDER
 69
 300
 302
-334
+333
 minPlantLife
 minPlantLife
 0
