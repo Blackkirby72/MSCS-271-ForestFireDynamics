@@ -1,6 +1,5 @@
 globals [ plantColors fireColors ]
 
-
 patches-own [plantGrowthState plantDeathTimer fireState fireDeathTime ]
 
 to setup
@@ -28,6 +27,13 @@ to setup
     set plantGrowthState -1
     set fireState -1
     set pcolor black
+  ]
+
+  ask patches with [ (-5 < pxcor and pxcor <= 5 and (pycor = 5 or pycor = -5)) or
+                     (-5 < pycor and pycor < 5 and (pxcor = 5 or pxcor = -5))] [
+    set plantGrowthState -1
+    set fireState -1
+    set pcolor blue
   ]
 
   reset-ticks
@@ -87,14 +93,26 @@ end
 
 to transition-fire
   ask patches [
-    let flammable plantGrowthState != 0 and plantGrowthState != 1
+    let flammable plantGrowthState != 0
 
     (ifelse fireState = 0 and flammable [
       let neighborsExcitedByFire count neighbors4 with [fireState = 1]
-      if neighborsExcitedByFire > 0 [
-        set plantGrowthState -1
-        set fireState 1
-        set pcolor item 1 fireColors
+      let neighborsOnFire count neighbors4 with [fireState = 2]
+
+      ;; hack and slash way of saying more burning neighbors = higher chance of catching fire
+      if (neighborsExcitedByFire > 0 and random (100 / neighborsExcitedByFire) < fireState1SpreadChance) or
+          (neighborsOnFire > 0 and random (100 / neighborsOnFire) < fireState2SpreadChance) [
+        ;; seed goes straight to fireState 2
+        ifelse plantGrowthState = 1 and random 100 < seedBurnChance [
+          set plantGrowthState -1
+          set fireState 2
+          set pcolor item 2 fireColors
+          set fireDeathTime random 3
+        ][
+          set plantGrowthState -1
+          set fireState 1
+          set pcolor item 1 fireColors
+        ]
       ]
     ]
     fireState = 1 [
@@ -108,7 +126,7 @@ to transition-fire
          set pcolor item 3 fireColors
        ]
     ]
-    fireState = 3 [
+    fireState = 3 and random 100 < ashClearChance [
       set fireState 0
       set pcolor item 0 plantColors
       set plantGrowthState 0
@@ -132,8 +150,8 @@ end
 GRAPHICS-WINDOW
 354
 13
-2039
-1699
+1208
+868
 -1
 -1
 13.0
@@ -146,10 +164,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--64
-64
--64
-64
+-32
+32
+-32
+32
 0
 0
 1
@@ -216,7 +234,7 @@ plantGrowthState0To1
 plantGrowthState0To1
 0
 100
-50.0
+12.0
 1
 1
 %
@@ -231,7 +249,7 @@ plantGrowthState1To2
 plantGrowthState1To2
 0
 100
-40.0
+17.0
 1
 1
 %
@@ -246,7 +264,7 @@ plantGrowthState2To3
 plantGrowthState2To3
 0
 100
-50.0
+19.0
 1
 1
 %
@@ -261,7 +279,7 @@ plantGrowthState3To4
 plantGrowthState3To4
 0
 100
-50.0
+27.0
 1
 1
 %
@@ -276,7 +294,7 @@ maxPlantLife
 maxPlantLife
 20
 200
-130.0
+105.0
 5
 1
 ticks
@@ -295,6 +313,66 @@ minPlantLife
 1
 1
 ticks
+HORIZONTAL
+
+SLIDER
+72
+393
+304
+427
+seedBurnChance
+seedBurnChance
+0
+100
+19.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+73
+437
+302
+471
+fireState1SpreadChance
+fireState1SpreadChance
+0
+100
+35.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+72
+480
+304
+514
+fireState2SpreadChance
+fireState2SpreadChance
+0
+100
+43.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+72
+528
+301
+562
+ashClearChance
+ashClearChance
+0
+100
+19.0
+1
+1
+%
 HORIZONTAL
 
 @#$#@#$#@
