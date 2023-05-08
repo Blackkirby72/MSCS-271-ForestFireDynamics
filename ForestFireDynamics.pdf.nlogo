@@ -29,11 +29,36 @@ to setup
     set pcolor black
   ]
 
-  ask patches with [ (-5 <= pxcor and pxcor < 4 and (pycor = 5 or pycor = -5)) or
-                     (-5 < pycor and pycor < 5 and (pxcor = 5 or pxcor = -5))] [
-    set plantGrowthState -1
-    set fireState -1
-    set pcolor blue
+  ;; Add water patches based on desired control type
+  if control-type = "None" [ ;; No control
+    ask patches with [(pxcor >= 1 and pxcor <= 6 and pycor = 4) or (pycor >= -1 and pycor <= 4 and pxcor = 1)
+      or (pxcor <= 6 and pxcor >= 2 and pycor = -1) or (pycor <= 3 and pycor >= -1 and pxcor = 6)] [
+      set pcolor item 0 plantColors
+    ]
+  ]
+
+  if control-type = "Partial" [ ;; Control with gaps
+    ask patches with [(pxcor >= 1 and pxcor <= 4 and pycor = 4) or (pycor >= 1 and pycor <= 4 and pxcor = 1)
+      or (pxcor <= 6 and pxcor >= 3 and pycor = -1) or (pycor <= 2 and pycor >= -1 and pxcor = 6) ] [
+      set plantGrowthState -1
+      set fireState -1
+      set pcolor blue
+    ]
+  ]
+
+  if control-type = "Full" [ ;; Fully controlled area
+    ask patches with [(pxcor >= 1 and pxcor <= 6 and pycor = 4) or (pycor >= -1 and pycor <= 4 and pxcor = 1)
+      or (pxcor <= 6 and pxcor >= 2 and pycor = -1) or (pycor <= 3 and pycor >= -1 and pxcor = 6)] [
+      set plantGrowthState -1
+      set fireState -1
+      set pcolor blue
+    ]
+    ;; Make sure a seed spawns in the control area since plants can't spread through the water
+    ask patches with [pxcor = ((random 5) + 1) and pycor = (random 3) and pcolor != blue] [
+        set plantGrowthState 1
+        set pcolor item 1 plantColors
+        set plantDeathTimer random 20
+      ]
   ]
 
   reset-ticks
@@ -46,11 +71,13 @@ to go
 end
 
 to transition-plants
+  ;; Transition function for plant patches
   ask patches [
     ;; plant cannot grow on this patch
     if plantGrowthState = -1 [ stop ]
 
     (ifelse
+      ;; Seed dropped from adult tree
       plantGrowthState = 0 and random 100 < plantGrowthState0To1 [
         let adults count neighbors4 with [plantGrowthState = 4]
         if adults > 0 [
@@ -59,10 +86,12 @@ to transition-plants
           set plantDeathTimer random (maxPlantLife - minPlantLife) + minPlantLife
         ]
       ]
+      ;; Seed germinates
       plantGrowthState = 1 and random 100 < plantGrowthState1To2 [
         set plantGrowthState 2
         set pcolor item 2 plantColors
       ]
+      ;; Germination to young plant
       plantGrowthState = 2 and random 100 < plantGrowthState2To3 [
         let adults count neighbors4 with [plantGrowthState = 4]
         ifelse adults = 4 [
@@ -74,6 +103,7 @@ to transition-plants
           set pcolor item 3 plantColors
         ]
       ]
+      ;; Young plant to adult plant
       plantGrowthState = 3 and random 100 < plantGrowthState3To4 [
         set plantGrowthState 4
         set pcolor item 4 plantColors
@@ -81,7 +111,6 @@ to transition-plants
       plantGrowthState = 4 [
 
     ])
-
     set plantDeathTimer plantDeathTimer - 1
 
     if plantDeathTimer <= 0 [
@@ -92,9 +121,10 @@ to transition-plants
 end
 
 to transition-fire
+  ;; Transition function for fire patches
   ask patches [
     let flammable plantGrowthState != 0
-
+    ;; If a plant is not on fire, become excited if neighbors are on fire
     (ifelse fireState = 0 and flammable [
       let neighborsExcitedByFire count neighbors4 with [fireState = 1]
       let neighborsOnFire count neighbors4 with [fireState = 2]
@@ -115,17 +145,20 @@ to transition-fire
         ]
       ]
     ]
+    ;; Excitement by fire to fire
     fireState = 1 [
       set fireState 2
       set pcolor item 2 fireColors
       set fireDeathTime random 10
     ]
+    ;; Fire to ash
     fireState = 2 [
        if fireDeathTime <= 0 [
          set fireState 3
          set pcolor item 3 fireColors
        ]
     ]
+    ;; Ash to nothing (plants can regrow on this patch)
     fireState = 3 and random 100 < ashClearChance [
       set fireState 0
       set pcolor item 0 plantColors
@@ -139,6 +172,7 @@ to transition-fire
 end
 
 to startFire
+  ;; Excite a random patch with fire
   ask one-of patches with [plantGrowthState = 2 or plantGrowthState = 3 or plantGrowthState = 4] [
     set plantGrowthState -1
     set fireState 1
@@ -150,8 +184,8 @@ end
 GRAPHICS-WINDOW
 354
 13
-1208
-868
+1207
+867
 -1
 -1
 13.0
@@ -249,7 +283,7 @@ plantGrowthState1To2
 plantGrowthState1To2
 0
 100
-17.0
+6.0
 1
 1
 %
@@ -264,7 +298,7 @@ plantGrowthState2To3
 plantGrowthState2To3
 0
 100
-19.0
+25.0
 1
 1
 %
@@ -319,12 +353,12 @@ SLIDER
 72
 393
 304
-427
+426
 seedBurnChance
 seedBurnChance
 0
 100
-19.0
+29.0
 1
 1
 %
@@ -334,7 +368,7 @@ SLIDER
 73
 437
 302
-471
+470
 fireState1SpreadChance
 fireState1SpreadChance
 0
@@ -349,7 +383,7 @@ SLIDER
 72
 480
 304
-514
+513
 fireState2SpreadChance
 fireState2SpreadChance
 0
@@ -364,16 +398,26 @@ SLIDER
 72
 528
 301
-562
+561
 ashClearChance
 ashClearChance
 0
 100
-19.0
+26.0
 1
 1
 %
 HORIZONTAL
+
+CHOOSER
+144
+586
+282
+631
+control-type
+control-type
+"None" "Partial" "Full"
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
