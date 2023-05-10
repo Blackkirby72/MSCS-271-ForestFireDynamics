@@ -1,6 +1,6 @@
 globals [ plantColors fireColors ]
 
-patches-own [plantGrowthState plantDeathTimer fireState fireDeathTime ]
+patches-own [ plantGrowthState plantDeathTimer fireState fireDeathTime humidity ]
 
 to setup
   clear-all
@@ -8,19 +8,6 @@ to setup
   set plantColors [ 38 68 66 64 62  ]
 
   set fireColors [ 0 26 16 7 ]
-
-  ask patches [
-    ifelse random 200 < 1 [
-      set plantGrowthState 1
-      set pcolor item 1 plantColors
-      set plantDeathTimer random 20
-    ][
-      set plantGrowthState 0
-      set pcolor item 0 plantColors
-    ]
-
-    set fireState 0
-  ]
 
   ;; Add a border to prevent trees/fires spreading across edges
   ask patches with [ pxcor = max-pxcor or pxcor = min-pxcor or pycor = max-pycor or pycor = min-pycor ] [
@@ -30,23 +17,19 @@ to setup
   ]
 
   ;; Add water patches based on desired control type
-  if control-type = "None" [ ;; No control
+  (ifelse control-type = "None" [ ;; No control
     ask patches with [(pxcor >= 1 and pxcor <= 6 and pycor = 4) or (pycor >= -1 and pycor <= 4 and pxcor = 1)
       or (pxcor <= 6 and pxcor >= 2 and pycor = -1) or (pycor <= 3 and pycor >= -1 and pxcor = 6)] [
       set pcolor item 0 plantColors
     ]
-  ]
-
-  if control-type = "Partial" [ ;; Control with gaps
+  ] control-type = "Partial" [ ;; Control with gaps
     ask patches with [(pxcor >= 1 and pxcor <= 4 and pycor = 4) or (pycor >= 1 and pycor <= 4 and pxcor = 1)
       or (pxcor <= 6 and pxcor >= 3 and pycor = -1) or (pycor <= 2 and pycor >= -1 and pxcor = 6) ] [
       set plantGrowthState -1
       set fireState -1
       set pcolor blue
     ]
-  ]
-
-  if control-type = "Full" [ ;; Fully controlled area
+  ] control-type = "Full" [ ;; Fully controlled area
     ask patches with [(pxcor >= 1 and pxcor <= 6 and pycor = 4) or (pycor >= -1 and pycor <= 4 and pxcor = 1)
       or (pxcor <= 6 and pxcor >= 2 and pycor = -1) or (pycor <= 3 and pycor >= -1 and pxcor = 6)] [
       set plantGrowthState -1
@@ -59,6 +42,32 @@ to setup
         set pcolor item 1 plantColors
         set plantDeathTimer random 20
       ]
+  ])
+
+  ask patches [
+    (ifelse plantGrowthState != -1 [
+      ;; random humidity between 40% and 80%
+      set humidity (random 40 + 40) / 100
+
+      ifelse random 200 < 1 [
+        set plantGrowthState 1
+        set pcolor item 1 plantColors
+        set plantDeathTimer random 20
+      ][
+        set plantGrowthState 0
+        set pcolor item 0 plantColors
+      ]
+
+      set fireState 0
+    ] pcolor = blue [
+      set humidity 0.80
+      ask neighbors with [plantGrowthState != -1] [
+        set humidity 0.70
+        ask neighbors with [plantGrowthState != -1] [
+          set humidity 0.65
+        ]
+      ]
+    ])
   ]
 
   reset-ticks
@@ -76,9 +85,13 @@ to transition-plants
     ;; plant cannot grow on this patch
     if plantGrowthState = -1 [ stop ]
 
+    ;; the affect of humidity on plant growth - between -6% and 6% growth chance
+    ;; negative for humidity < 0.6, positive for humidity > 0.6
+    let humidityAffect (humidity - 0.60) * 30
+
     (ifelse
       ;; Seed dropped from adult tree
-      plantGrowthState = 0 and random 100 < plantGrowthState0To1 [
+      plantGrowthState = 0 and random 100 < plantGrowthState0To1 + humidityAffect [
         let adults count neighbors4 with [plantGrowthState = 4]
         if adults > 0 [
           set plantGrowthState 1
@@ -87,12 +100,12 @@ to transition-plants
         ]
       ]
       ;; Seed germinates
-      plantGrowthState = 1 and random 100 < plantGrowthState1To2 [
+      plantGrowthState = 1 and random 100 < plantGrowthState1To2 + humidityAffect [
         set plantGrowthState 2
         set pcolor item 2 plantColors
       ]
       ;; Germination to young plant
-      plantGrowthState = 2 and random 100 < plantGrowthState2To3 [
+      plantGrowthState = 2 and random 100 < plantGrowthState2To3 + humidityAffect [
         let adults count neighbors4 with [plantGrowthState = 4]
         ifelse adults = 4 [
           set plantGrowthState 0
@@ -104,7 +117,7 @@ to transition-plants
         ]
       ]
       ;; Young plant to adult plant
-      plantGrowthState = 3 and random 100 < plantGrowthState3To4 [
+      plantGrowthState = 3 and random 100 < plantGrowthState3To4 + humidityAffect [
         set plantGrowthState 4
         set pcolor item 4 plantColors
       ]
@@ -124,16 +137,20 @@ to transition-fire
   ;; Transition function for fire patches
   ask patches [
     let flammable plantGrowthState != 0
+
+    ;; the affect of humidity on fire spread and duration - between -20% and 20% burn chance and duration
+    ;; negative for humidity > 0.6, positive for humidity < 0.6
+    let humidityAffect (0.60 - humidity) * 100
+
     ;; If a plant is not on fire, become excited if neighbors are on fire
     (ifelse fireState = 0 and flammable [
       let neighborsExcitedByFire count neighbors4 with [fireState = 1]
       let neighborsOnFire count neighbors4 with [fireState = 2]
 
-      ;; hack and slash way of saying more burning neighbors = higher chance of catching fire
-      if (neighborsExcitedByFire > 0 and random (100 / neighborsExcitedByFire) < fireState1SpreadChance) or
-          (neighborsOnFire > 0 and random (100 / neighborsOnFire) < fireState2SpreadChance) [
+      if (neighborsExcitedByFire > 0 and random 100 < fireState1SpreadChance + humidityAffect) or
+          (neighborsOnFire > 0 and random 100 < fireState2SpreadChance + humidityAffect) [
         ;; seed goes straight to fireState 2
-        ifelse plantGrowthState = 1 and random 100 < seedBurnChance [
+        ifelse plantGrowthState = 1 and random 100 < seedBurnChance + humidityAffect [
           set plantGrowthState -1
           set fireState 2
           set pcolor item 2 fireColors
@@ -147,13 +164,20 @@ to transition-fire
     ]
     ;; Excitement by fire to fire
     fireState = 1 [
-      set fireState 2
-      set pcolor item 2 fireColors
-      set fireDeathTime random 10
+      ifelse random 100 < fireState1To2 + humidityAffect [
+        set fireState 2
+        set pcolor item 2 fireColors
+        set fireDeathTime random 10
+      ] [
+         if fireDeathTime <= 0  [
+           set fireState 3
+           set pcolor item 3 fireColors
+         ]
+      ]
     ]
     ;; Fire to ash
     fireState = 2 [
-       if fireDeathTime <= 0 [
+       if fireDeathTime <= 0  [
          set fireState 3
          set pcolor item 3 fireColors
        ]
@@ -268,7 +292,7 @@ plantGrowthState0To1
 plantGrowthState0To1
 0
 100
-12.0
+17.0
 1
 1
 %
@@ -283,7 +307,7 @@ plantGrowthState1To2
 plantGrowthState1To2
 0
 100
-6.0
+15.0
 1
 1
 %
@@ -298,7 +322,7 @@ plantGrowthState2To3
 plantGrowthState2To3
 0
 100
-25.0
+17.0
 1
 1
 %
@@ -313,7 +337,7 @@ plantGrowthState3To4
 plantGrowthState3To4
 0
 100
-27.0
+20.0
 1
 1
 %
@@ -328,7 +352,7 @@ maxPlantLife
 maxPlantLife
 20
 200
-105.0
+200.0
 5
 1
 ticks
@@ -358,7 +382,7 @@ seedBurnChance
 seedBurnChance
 0
 100
-29.0
+24.0
 1
 1
 %
@@ -373,7 +397,7 @@ fireState1SpreadChance
 fireState1SpreadChance
 0
 100
-35.0
+27.0
 1
 1
 %
@@ -388,36 +412,51 @@ fireState2SpreadChance
 fireState2SpreadChance
 0
 100
-43.0
+35.0
 1
 1
 %
 HORIZONTAL
 
 SLIDER
-72
-528
-301
-561
+73
+569
+303
+602
 ashClearChance
 ashClearChance
 0
 100
-26.0
+9.0
 1
 1
 %
 HORIZONTAL
 
 CHOOSER
-144
-586
-282
-631
+122
+621
+260
+666
 control-type
 control-type
 "None" "Partial" "Full"
+2
+
+SLIDER
+72
+524
+304
+557
+fireState1To2
+fireState1To2
+0
+100
+75.0
 1
+1
+%
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?

@@ -1,5 +1,7 @@
 # MSCS-271-ForestFireDynamics
 
+# Authors: Caleb Czeck and Lucas Schaff
+
 ## User Input Variables
 
 - `plantGrowthState0To1` - the percentage chance of a patch in `plantGrowthState = 0` transitioning to `plantGrowthState = 1` when it has a neighbor with `plantGrowthState = 4`.
