@@ -5,14 +5,26 @@ Simulating both the growth of the forest and spread of fire using the same time 
   - If the fire spread and plant growth sliders are poorly chosen, the plants can regrow as fast as they are destroyed,
     possibly leading to an infinite forest fire.
  
- Using Protector Control:
+Using Protector Control:
   - Using a partial protector doesn't stop the spread of fire, using a full protector does.
   - Not the most useful result, could include different types of barriers to make the expirement more interesting.
   - Due to limitations in NetLogo, it was impractical to allow the user to specify the location of the protector. It would be more
     useful to allow the user to specify the area that they would like to protect.
   
-  Landscape:
-   - Currently the model only simulates a two dimensional plane. In reality, the spread of fire is greatly affected by elevation and
-     other features of the terrain.
-     - The model could be updated to have a z-coordinate to simulate change in elevation
-     - Could include "natural" protectors like rivers or areas with little vegetation for fire to spread to.
+Landscape:
+  - Currently the model only simulates a two dimensional plane. In reality, the spread of fire is greatly affected by elevation and
+    other features of the terrain.
+    - The model could be updated to have a z-coordinate to simulate change in elevation
+    - Could include "natural" protectors like rivers or areas with little vegetation for fire to spread to.
+
+
+Environmental Factors:
+  - Prior to adding a "humidity" value to each patch, a fire was nearly guaranteed to burn down the entire forest, though it now has a lower chance of spreading to higher humidity patches.
+    Further experimentation/research would make the humidity calculation slightly more accurate, though it would be difficult to estimate the rate at which fire spreads.
+  - Additional environmental factors could be considered in the future, including, but not limited to:
+    - Wind speed/direction
+    - Elevation
+    - Temperature
+    - Clouds
+    - Weather
+    - Season
