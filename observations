@@ -1,0 +1,18 @@
+Simulating both the growth of the forest and spread of fire using the same time scale:
+  - In real life, plants obviously grow on a much different time scale to the rate that fire spreads. It would be innacurate
+    to grow plants and spread fire at the same time.
+      - This can be mitigated using the "Stop Plant Growth" button, so both can be observed independently.
+  - If the fire spread and plant growth sliders are poorly chosen, the plants can regrow as fast as they are destroyed,
+    possibly leading to an infinite forest fire.
+ 
+ Using Protector Control:
+  - Using a partial protector doesn't stop the spread of fire, using a full protector does.
+  - Not the most useful result, could include different types of barriers to make the expirement more interesting.
+  - Due to limitations in NetLogo, it was impractical to allow the user to specify the location of the protector. It would be more
+    useful to allow the user to specify the area that they would like to protect.
+  
+  Landscape:
+   - Currently the model only simulates a two dimensional plane. In reality, the spread of fire is greatly affected by elevation and
+     other features of the terrain.
+     - The model could be updated to have a z-coordinate to simulate change in elevation
+     - Could include "natural" protectors like rivers or areas with little vegetation for fire to spread to.
