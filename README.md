@@ -22,7 +22,11 @@
 
 -`fireState2SpreadChacne` - the percentage chance of a patch with `fireState = 0` tranistioning to `fireState = 1` when a neighbor is in `fireState = 2`.
 
+-`fireState1To2` - the percentage chance of a patch with `fireState = 1` transitioning to `fireState = 2`.
+
 -`ashClearChance` - the percentage chance of a patch with `fireState = 3` transitioning to `fireState = 0` and `plantState = 0`.
+
+-`control-type` - the shape of the controlled area.
 
 ## Code Global Variables
 
