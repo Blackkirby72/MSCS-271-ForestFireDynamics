@@ -1,4 +1,4 @@
-globals [ plantColors fireColors ]
+globals [ plantColors fireColors growPlants ]
 
 patches-own [ plantGrowthState plantDeathTimer fireState fireDeathTime humidity ]
 
@@ -9,40 +9,14 @@ to setup
 
   set fireColors [ 0 26 16 7 ]
 
+  set growPlants true
+
   ;; Add a border to prevent trees/fires spreading across edges
   ask patches with [ pxcor = max-pxcor or pxcor = min-pxcor or pycor = max-pycor or pycor = min-pycor ] [
     set plantGrowthState -1
     set fireState -1
     set pcolor black
   ]
-
-  ;; Add water patches based on desired control type
-  (ifelse control-type = "None" [ ;; No control
-    ask patches with [(pxcor >= 1 and pxcor <= 6 and pycor = 4) or (pycor >= -1 and pycor <= 4 and pxcor = 1)
-      or (pxcor <= 6 and pxcor >= 2 and pycor = -1) or (pycor <= 3 and pycor >= -1 and pxcor = 6)] [
-      set pcolor item 0 plantColors
-    ]
-  ] control-type = "Partial" [ ;; Control with gaps
-    ask patches with [(pxcor >= 1 and pxcor <= 4 and pycor = 4) or (pycor >= 1 and pycor <= 4 and pxcor = 1)
-      or (pxcor <= 6 and pxcor >= 3 and pycor = -1) or (pycor <= 2 and pycor >= -1 and pxcor = 6) ] [
-      set plantGrowthState -1
-      set fireState -1
-      set pcolor blue
-    ]
-  ] control-type = "Full" [ ;; Fully controlled area
-    ask patches with [(pxcor >= 1 and pxcor <= 6 and pycor = 4) or (pycor >= -1 and pycor <= 4 and pxcor = 1)
-      or (pxcor <= 6 and pxcor >= 2 and pycor = -1) or (pycor <= 3 and pycor >= -1 and pxcor = 6)] [
-      set plantGrowthState -1
-      set fireState -1
-      set pcolor blue
-    ]
-    ;; Make sure a seed spawns in the control area since plants can't spread through the water
-    ask patches with [pxcor = ((random 5) + 1) and pycor = (random 3) and pcolor != blue] [
-        set plantGrowthState 1
-        set pcolor item 1 plantColors
-        set plantDeathTimer random 20
-      ]
-  ])
 
   ask patches [
     (ifelse plantGrowthState != -1 [
@@ -70,13 +44,48 @@ to setup
     ])
   ]
 
+  ;; Add water patches based on desired control type
+  (ifelse control-type = "None" [ ;; No control
+    ask patches with [(pxcor >= 1 and pxcor <= 6 and pycor = 4) or (pycor >= -1 and pycor <= 4 and pxcor = 1)
+      or (pxcor <= 6 and pxcor >= 2 and pycor = -1) or (pycor <= 3 and pycor >= -1 and pxcor = 6)] [
+      set pcolor item 0 plantColors
+    ]
+  ] control-type = "Partial" [ ;; Control with gaps
+    ask patches with [(pxcor >= 1 and pxcor <= 4 and pycor = 4) or (pycor >= 1 and pycor <= 4 and pxcor = 1)
+      or (pxcor <= 6 and pxcor >= 3 and pycor = -1) or (pycor <= 2 and pycor >= -1 and pxcor = 6) ] [
+      set plantGrowthState -1
+      set fireState -1
+      set pcolor blue
+    ]
+  ] control-type = "Full" [ ;; Fully controlled area
+    ask patches with [(pxcor >= 1 and pxcor <= 6 and pycor = 4) or (pycor >= -1 and pycor <= 4 and pxcor = 1)
+      or (pxcor <= 6 and pxcor >= 2 and pycor = -1) or (pycor <= 3 and pycor >= -1 and pxcor = 6)] [
+      set plantGrowthState -1
+      set fireState -1
+      set pcolor blue
+
+    ;; Make sure a seed spawns in the control area since plants can't spread through the water
+      ask patch 3 1 [
+        set plantGrowthState 1
+        set pcolor item 1 plantColors
+        set plantDeathTimer random (maxPlantLife - minPlantLife) + minPlantLife
+      ]
+    ]
+  ])
+
   reset-ticks
 end
 
 to go
-  transition-plants
+  if growPlants = true[
+    transition-plants
+  ]
   transition-fire
   tick
+end
+
+to stop-growth
+  set growPlants not growPlants
 end
 
 to transition-plants
@@ -284,25 +293,25 @@ NIL
 1
 
 SLIDER
-67
-122
-304
-155
+1257
+29
+1494
+62
 plantGrowthState0To1
 plantGrowthState0To1
 0
 100
-17.0
+10.0
 1
 1
 %
 HORIZONTAL
 
 SLIDER
-67
-165
-302
-198
+1257
+73
+1492
+106
 plantGrowthState1To2
 plantGrowthState1To2
 0
@@ -314,10 +323,10 @@ plantGrowthState1To2
 HORIZONTAL
 
 SLIDER
-67
-210
-302
-243
+1257
+117
+1492
+150
 plantGrowthState2To3
 plantGrowthState2To3
 0
@@ -329,10 +338,10 @@ plantGrowthState2To3
 HORIZONTAL
 
 SLIDER
-68
-254
-303
-287
+1258
+162
+1493
+195
 plantGrowthState3To4
 plantGrowthState3To4
 0
@@ -344,10 +353,10 @@ plantGrowthState3To4
 HORIZONTAL
 
 SLIDER
-69
-348
-304
-381
+1259
+256
+1494
+289
 maxPlantLife
 maxPlantLife
 20
@@ -359,10 +368,10 @@ ticks
 HORIZONTAL
 
 SLIDER
-69
-300
-302
-333
+1259
+207
+1492
+240
 minPlantLife
 minPlantLife
 0
@@ -374,55 +383,55 @@ ticks
 HORIZONTAL
 
 SLIDER
-72
-393
-304
-426
+1262
+300
+1494
+333
 seedBurnChance
 seedBurnChance
 0
 100
-24.0
+31.0
 1
 1
 %
 HORIZONTAL
 
 SLIDER
-73
-437
-302
-470
+1263
+345
+1492
+378
 fireState1SpreadChance
 fireState1SpreadChance
 0
 100
-27.0
+54.0
 1
 1
 %
 HORIZONTAL
 
 SLIDER
-72
-480
-304
-513
+1265
+387
+1497
+420
 fireState2SpreadChance
 fireState2SpreadChance
 0
 100
-35.0
+54.0
 1
 1
 %
 HORIZONTAL
 
 SLIDER
-73
-569
-303
-602
+1263
+477
+1493
+510
 ashClearChance
 ashClearChance
 0
@@ -434,29 +443,46 @@ ashClearChance
 HORIZONTAL
 
 CHOOSER
-122
-621
-260
-666
+1302
+523
+1440
+568
 control-type
 control-type
 "None" "Partial" "Full"
 2
 
 SLIDER
-72
-524
-304
-557
+1262
+432
+1494
+465
 fireState1To2
 fireState1To2
 0
 100
-75.0
+55.0
 1
 1
 %
 HORIZONTAL
+
+BUTTON
+119
+126
+246
+160
+Stop Plant Growth
+stop-growth
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
